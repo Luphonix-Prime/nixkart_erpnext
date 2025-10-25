@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Login - NixKart{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="auth-form checkout-form">
+                <h2 class="text-center mb-4" style="color: var(--light-color);">Login</h2>
+                <form method="post" class="needs-validation" novalidate action="{% url 'login' %}">
+                    {% csrf_token %}
+                    {% if next %}
+                        <input type="hidden" name="next" value="{{ next }}">
+                    {% endif %}
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <p><strong>Login Failed!</strong> Please check your credentials and try again.</p>
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label" style="color: var(--light-color);">Username</label>
+                        <input type="text" name="username" class="form-control neo-input" id="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label" style="color: var(--light-color);">Password</label>
+                        <input type="password" name="password" class="form-control neo-input" id="password" required>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg neo-btn">
+                            <span class="btn-content"><i class="fas fa-sign-in-alt"></i> Login</span>
+                        </button>
+                    </div>
+
+                    <div class="social-login mt-4">
+                        <div class="or-divider mb-3">
+                            <hr>
+                            <span style="color: var(--light-color);">OR</span>
+                            <hr>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'socialaccount_login' provider='google' %}" class="btn btn-outline-danger btn-lg">
+                                <i class="fab fa-google"></i> Continue with Google
+                            </a>
+                            <a href="{% url 'socialaccount_login' provider='github' %}" class="btn btn-outline-dark btn-lg">
+                                <i class="fab fa-github"></i> Continue with GitHub
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <a href="{% url 'password_reset' %}" class="text-primary">Forgot Password?</a>
+                        <p class="mt-2" style="color: var(--light-color);">Don't have an account? <a href="{% url 'signup' %}" class="text-primary">Sign Up</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

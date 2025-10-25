@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Sign Up - NixKart{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="auth-form checkout-form">
+                <h2 class="text-center mb-4" style="color: var(--light-color);">Create Account</h2>
+                <form method="post" class="needs-validation" novalidate action="{% url 'signup' %}">
+                    {% csrf_token %}
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label" style="color: var(--light-color);">Username</label>
+                        <input type="text" name="username" class="form-control neo-input" id="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label" style="color: var(--light-color);">Email</label>
+                        <input type="email" name="email" class="form-control neo-input" id="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password1" class="form-label" style="color: var(--light-color);">Password</label>
+                        <input type="password" name="password1" class="form-control neo-input" id="password1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password2" class="form-label" style="color: var(--light-color);">Confirm Password</label>
+                        <input type="password" name="password2" class="form-control neo-input" id="password2" required>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg neo-btn">
+                            <span class="btn-content"><i class="fas fa-user-plus"></i> Sign Up</span>
+                        </button>
+                    </div>
+                    
+                    <div class="social-login mt-4">
+                        <div class="or-divider mb-3">
+                            <hr>
+                            <span style="color: var(--light-color);">OR</span>
+                            <hr>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'socialaccount_login' provider='google' %}" class="btn btn-outline-danger btn-lg">
+                                <i class="fab fa-google"></i> Continue with Google
+                            </a>
+                            <a href="{% url 'socialaccount_login' provider='github' %}" class="btn btn-outline-dark btn-lg">
+                                <i class="fab fa-github"></i> Continue with GitHub
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <p style="color: var(--light-color);">Already have an account? <a href="{% url 'login' %}" class="text-primary">Login</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

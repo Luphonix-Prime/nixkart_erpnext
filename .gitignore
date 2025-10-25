@@ -1,0 +1,6 @@
+db.sqlite3
+/ecommerce_project/__pycache__
+/store/__pycache__
+*.sqlite3
+/store/migrations/__pycache__
+/store/migrations/*.py

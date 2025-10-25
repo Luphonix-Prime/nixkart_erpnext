@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}New Arrivals - E-Commerce Store{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="section-title mb-4">New Arrivals</h1>
+    
+    <div class="row">
+        {% if new_products %}
+            {% for product in new_products %}
+                <div class="col-xl-3 col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:1|stringformat:'s' }}00">
+                    <div class="product-card">
+                        <div class="product-img-wrapper">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-img">
+                            {% else %}
+                                <div class="product-placeholder">
+                                    <i class="fas fa-box-open"></i>
+                                </div>
+                            {% endif %}
+                            <div class="product-badge">
+                                <span class="badge bg-success">New</span>
+                                {% if product.model_3d %}
+                                    <span class="badge bg-primary">3D</span>
+                                {% endif %}
+                            </div>
+                            <div class="product-actions">
+                                <a href="{% url 'product_detail' product.slug %}" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'add_to_wishlist' product.id %}" class="btn btn-sm btn-outline-light" data-bs-toggle="tooltip" title="Add to Wishlist">
+                                    <i class="far fa-heart"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="product-card-body">
+                            <h3 class="product-title">
+                                <a href="{% url 'product_detail' product.slug %}">{{ product.name }}</a>
+                            </h3>
+                            <div class="product-meta">
+                                <span class="product-category">{{ product.category.name }}</span>
+                                <span class="product-price">${{ product.price }}</span>
+                            </div>
+                            <div class="product-description">
+                                {{ product.description|truncatechars:60 }}
+                            </div>
+                        </div>
+                        <div class="product-card-footer">
+                            <button class="btn btn-primary add-to-cart-btn" data-product-slug="{{ product.slug }}">
+                                <i class="fas fa-shopping-cart me-2"></i> Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <h3>No New Products Available</h3>
+                    <p>We're currently restocking our inventory. Please check back soon for new arrivals!</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add to Cart functionality
+        const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+        addToCartButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const productSlug = this.getAttribute('data-product-slug');
+                
+                // Add loading state
+                this.classList.add('adding');
+                
+                // Send AJAX request
+                fetch(`/add-to-cart/${productSlug}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Remove loading state
+                    this.classList.remove('adding');
+                    
+                    // Update cart count in navbar
+                    const cartCountElement = document.querySelector('.cart-count');
+                    if (cartCountElement) {
+                        cartCountElement.textContent = data.cart_count;
+                    }
+                    
+                    // Show success message
+                    alert('Product added to cart!');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    this.classList.remove('adding');
+                    alert('Failed to add product to cart. Please try again.');
+                });
+            });
+        });
+        
+        // Helper function to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}
