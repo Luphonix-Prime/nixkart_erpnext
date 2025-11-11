@@ -6,6 +6,11 @@ from decimal import Decimal
 import qrcode
 from io import BytesIO
 import base64
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from django.db.models import Manager
+    from qrcode.image.pil import PilImage
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -14,6 +19,9 @@ class Category(models.Model):
     image = models.ImageField(upload_to='categories/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    if TYPE_CHECKING:
+        products: Manager['Product']
     
     class Meta:
         verbose_name_plural = 'Categories'
@@ -59,6 +67,10 @@ class Product(models.Model):
     sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    if TYPE_CHECKING:
+        id: int
+        category_id: int
     
     class Meta:
         ordering = ['-created_at']
@@ -127,16 +139,16 @@ class Product(models.Model):
         
         qr = qrcode.QRCode(
             version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,  # type: ignore[attr-defined]
             box_size=10,
             border=4,
         )
         qr.add_data(qr_url)
         qr.make(fit=True)
         
-        img = qr.make_image(fill_color="black", back_color="white")
+        img: PilImage = qr.make_image(fill_color="black", back_color="white")  # type: ignore[assignment]
         buffered = BytesIO()
-        img.save(buffered, format="PNG")
+        img.save(buffered, format="PNG")  # type: ignore[call-arg]
         img_str = base64.b64encode(buffered.getvalue()).decode()
         return f"data:image/png;base64,{img_str}"
 
@@ -145,6 +157,10 @@ class Cart(models.Model):
     session_id = models.CharField(max_length=255, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    if TYPE_CHECKING:
+        id: int
+        items: Manager['CartItem']
     
     def __str__(self):
         if self.user:
@@ -192,6 +208,10 @@ class Order(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    if TYPE_CHECKING:
+        id: int
+        items: Manager['OrderItem']
     
     class Meta:
         ordering = ['-created_at']

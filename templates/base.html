@@ -112,7 +112,12 @@
                         </div>
                     </form>
                     
-                    <ul class="navbar-nav ms-auto">
+                   <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link hover-3d" href="{% url 'qr_scanner' %}" title="Scan QR Code">
+                                <span class="hover-3d-inner"><i class="fas fa-qrcode"></i></span>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link cart-icon-wrapper" href="{% url 'cart' %}">
                                 <div class="cart-icon-3d">

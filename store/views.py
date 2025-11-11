@@ -13,6 +13,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.utils.text import slugify
+from datetime import timedelta
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from .payments import create_payment_intent as create_stripe_payment_intent
@@ -60,7 +61,7 @@ def dashboard(request):
         sales_by_month = {}
         
         # All orders from the last 12 months
-        twelve_months_ago = timezone.now() - timezone.timedelta(days=365)
+        twelve_months_ago = timezone.now() - timedelta(days=365)
         orders = Order.objects.filter(created_at__gte=twelve_months_ago)
         
         # Group by month and calculate total sales
@@ -84,7 +85,7 @@ def dashboard(request):
             category_labels.append(cat_name)
             
             # Count total sales in this category (only works for Django models)
-            if not DataAdapter.use_erpnext():
+            if not DataAdapter.use_erpnext() and isinstance(category, Category):
                 category_sales = sum(
                     float(order_item.subtotal)
                     for order in orders
@@ -125,7 +126,7 @@ def dashboard(request):
         user_registration = {}
         
         # All users from the last 6 months
-        six_months_ago = timezone.now() - timezone.timedelta(days=180)
+        six_months_ago = timezone.now() - timedelta(days=180)
         users = User.objects.filter(date_joined__gte=six_months_ago)
         
         # Group by month and count
@@ -147,7 +148,7 @@ def dashboard(request):
         
         # Sales comparison data (current month vs previous month)
         current_month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        prev_month_start = (current_month_start - timezone.timedelta(days=1)).replace(day=1)
+        prev_month_start = (current_month_start - timedelta(days=1)).replace(day=1)
         
         current_month_orders = Order.objects.filter(created_at__gte=current_month_start)
         prev_month_orders = Order.objects.filter(created_at__gte=prev_month_start, created_at__lt=current_month_start)
@@ -295,12 +296,19 @@ def product_detail(request, product_slug):
         if category:
             all_products = DataAdapter.get_products(category=category, limit=5)
             # Filter out current product
-            product_id = product.get('id') if isinstance(product, dict) else product.id
+            if isinstance(product, dict):
+                product_id = product.get('id')
+            else:
+                product_id = product.id
             related_products = [p for p in all_products if (p.get('id') if isinstance(p, dict) else p.id) != product_id][:4]
         else:
             related_products = []
     else:
-        related_products = Product.objects.filter(category=product.category).exclude(id=product.id)[:4]
+        # Product is guaranteed to be a Product model instance here
+        if isinstance(product, Product):
+            related_products = Product.objects.filter(category=product.category).exclude(id=product.id)[:4]
+        else:
+            related_products = []
     
     # Check if this product is in the user's wishlist
     is_in_wishlist = False
@@ -568,15 +576,19 @@ def add_to_cart(request, product_slug):
             return JsonResponse({'success': False, 'error': 'Product not found'}, status=404)
         # For ERPNext, we need to create or get a local Product reference for cart
         # This is a limitation - cart requires Django models
-        product, _ = Product.objects.get_or_create(
-            slug=product_data.get('slug'),
-            defaults={
-                'name': product_data.get('name'),
-                'price': product_data.get('price'),
-                'stock': product_data.get('stock', 0),
-                'description': product_data.get('description', ''),
-            }
-        )
+        if isinstance(product_data, dict):
+            product, _ = Product.objects.get_or_create(
+                slug=product_data.get('slug'),
+                defaults={
+                    'name': product_data.get('name'),
+                    'price': product_data.get('price'),
+                    'stock': product_data.get('stock', 0),
+                    'description': product_data.get('description', ''),
+                }
+            )
+        else:
+            # product_data is already a Product instance
+            product = product_data
     else:
         product = get_object_or_404(Product, slug=product_slug)
     
@@ -694,6 +706,10 @@ def qr_add_to_cart(request, product_slug):
     
     # Redirect to cart page to show the added item
     return redirect('cart')
+
+def qr_scanner(request):
+    """QR Code Scanner page"""
+    return render(request, 'store/qr_scanner.html')
 
 # Payment Intent creation
 @csrf_exempt

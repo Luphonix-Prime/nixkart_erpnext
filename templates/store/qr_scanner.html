@@ -1,0 +1,758 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}QR Code Scanner - NixKart{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --scanner-primary: #4f46e5;
+        --scanner-success: #10b981;
+        --scanner-error: #ef4444;
+        --scanner-bg: #f8fafc;
+    }
+
+    .scanner-container {
+        padding: 2rem 0;
+        min-height: calc(100vh - 200px);
+        background: var(--scanner-bg);
+    }
+
+    .scanner-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .scanner-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, var(--scanner-primary), #7c3aed);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .scanner-header p {
+        color: #64748b;
+        font-size: 1.1rem;
+    }
+
+    .scanner-main {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .scanner-tabs {
+        display: flex;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .scanner-tab {
+        flex: 1;
+        padding: 1.25rem;
+        text-align: center;
+        background: transparent;
+        border: none;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .scanner-tab:hover {
+        background: #f8fafc;
+        color: var(--scanner-primary);
+    }
+
+    .scanner-tab.active {
+        color: var(--scanner-primary);
+    }
+
+    .scanner-tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--scanner-primary);
+    }
+
+    .scanner-tab i {
+        margin-right: 0.5rem;
+    }
+
+    .scanner-content {
+        padding: 2rem;
+    }
+
+    .tab-panel {
+        display: none;
+    }
+
+    .tab-panel.active {
+        display: block;
+    }
+
+    /* Camera Scanner Styles */
+    #video-container {
+        position: relative;
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #000;
+    }
+
+    #qr-video {
+        width: 100%;
+        display: block;
+        border-radius: 12px;
+    }
+
+    .scanner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+    }
+
+    .scanner-frame {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 250px;
+        height: 250px;
+        border: 3px solid var(--scanner-success);
+        border-radius: 16px;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    }
+
+    .scanner-corner {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        border: 3px solid var(--scanner-success);
+    }
+
+    .scanner-corner.top-left {
+        top: -3px;
+        left: -3px;
+        border-right: none;
+        border-bottom: none;
+    }
+
+    .scanner-corner.top-right {
+        top: -3px;
+        right: -3px;
+        border-left: none;
+        border-bottom: none;
+    }
+
+    .scanner-corner.bottom-left {
+        bottom: -3px;
+        left: -3px;
+        border-right: none;
+        border-top: none;
+    }
+
+    .scanner-corner.bottom-right {
+        bottom: -3px;
+        right: -3px;
+        border-left: none;
+        border-top: none;
+    }
+
+    .scan-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--scanner-success);
+        animation: scan 2s ease-in-out infinite;
+    }
+
+    @keyframes scan {
+        0%, 100% {
+            top: 0;
+            opacity: 0.8;
+        }
+        50% {
+            top: 100%;
+            opacity: 1;
+        }
+    }
+
+    .scanner-controls {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 1.5rem;
+    }
+
+    .scanner-btn {
+        padding: 0.875rem 1.75rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .scanner-btn-primary {
+        background: var(--scanner-primary);
+        color: white;
+    }
+
+    .scanner-btn-primary:hover {
+        background: #4338ca;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+
+    .scanner-btn-secondary {
+        background: #e5e7eb;
+        color: #374151;
+    }
+
+    .scanner-btn-secondary:hover {
+        background: #d1d5db;
+    }
+
+    .scanner-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Upload Scanner Styles */
+    .upload-area {
+        border: 3px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 3rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .upload-area:hover {
+        border-color: var(--scanner-primary);
+        background: #f8fafc;
+    }
+
+    .upload-area.dragover {
+        border-color: var(--scanner-primary);
+        background: #eef2ff;
+    }
+
+    .upload-icon {
+        font-size: 4rem;
+        color: var(--scanner-primary);
+        margin-bottom: 1rem;
+    }
+
+    .upload-area h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: #1e293b;
+    }
+
+    .upload-area p {
+        color: #64748b;
+        margin-bottom: 1.5rem;
+    }
+
+    #file-input {
+        display: none;
+    }
+
+    .upload-btn {
+        background: var(--scanner-primary);
+        color: white;
+        padding: 0.875rem 1.75rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .upload-btn:hover {
+        background: #4338ca;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+
+    /* Scan Result */
+    .scan-result {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        border-radius: 12px;
+        display: none;
+    }
+
+    .scan-result.success {
+        background: #d1fae5;
+        border: 2px solid var(--scanner-success);
+        display: block;
+    }
+
+    .scan-result.error {
+        background: #fee2e2;
+        border: 2px solid var(--scanner-error);
+        display: block;
+    }
+
+    .result-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+
+    .result-icon.success {
+        color: var(--scanner-success);
+    }
+
+    .result-icon.error {
+        color: var(--scanner-error);
+    }
+
+    .result-message {
+        text-align: center;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .result-details {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .result-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    /* Instructions */
+    .instructions {
+        background: #f8fafc;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-top: 2rem;
+    }
+
+    .instructions h4 {
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        color: #1e293b;
+    }
+
+    .instructions ol {
+        margin-left: 1.5rem;
+        color: #64748b;
+    }
+
+    .instructions li {
+        margin-bottom: 0.75rem;
+        line-height: 1.6;
+    }
+
+    /* Loading Animation */
+    .scanner-loading {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .spinner {
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid var(--scanner-primary);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .scanner-header h1 {
+            font-size: 2rem;
+        }
+
+        .scanner-content {
+            padding: 1.5rem;
+        }
+
+        .scanner-tab {
+            padding: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .scanner-frame {
+            width: 200px;
+            height: 200px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scanner-container">
+    <div class="container">
+        <div class="scanner-header">
+            <h1><i class="fas fa-qrcode"></i> QR Code Scanner</h1>
+            <p>Scan product QR codes to quickly add items to your cart</p>
+        </div>
+
+        <div class="scanner-main">
+            <div class="scanner-tabs">
+                <button class="scanner-tab active" data-tab="camera">
+                    <i class="fas fa-camera"></i> Camera Scan
+                </button>
+                <button class="scanner-tab" data-tab="upload">
+                    <i class="fas fa-upload"></i> Upload Image
+                </button>
+            </div>
+
+            <div class="scanner-content">
+                <!-- Camera Scanner Tab -->
+                <div class="tab-panel active" id="camera-panel">
+                    <div id="video-container" style="display: none;">
+                        <video id="qr-video"></video>
+                        <div class="scanner-overlay">
+                            <div class="scanner-frame">
+                                <div class="scanner-corner top-left"></div>
+                                <div class="scanner-corner top-right"></div>
+                                <div class="scanner-corner bottom-left"></div>
+                                <div class="scanner-corner bottom-right"></div>
+                                <div class="scan-line"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="scanner-controls">
+                        <button id="start-camera" class="scanner-btn scanner-btn-primary">
+                            <i class="fas fa-camera"></i> Start Camera
+                        </button>
+                        <button id="stop-camera" class="scanner-btn scanner-btn-secondary" style="display: none;">
+                            <i class="fas fa-stop"></i> Stop Camera
+                        </button>
+                    </div>
+
+                    <div class="instructions">
+                        <h4><i class="fas fa-info-circle"></i> How to Scan</h4>
+                        <ol>
+                            <li>Click "Start Camera" to activate your device camera</li>
+                            <li>Allow camera permissions when prompted</li>
+                            <li>Position the QR code within the highlighted frame</li>
+                            <li>The product will be automatically added to your cart</li>
+                            <li>Continue scanning to add more products</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Upload Scanner Tab -->
+                <div class="tab-panel" id="upload-panel">
+                    <div class="upload-area" id="upload-area">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <h3>Upload QR Code Image</h3>
+                        <p>Drag and drop an image or click to browse</p>
+                        <button type="button" class="upload-btn" onclick="document.getElementById('file-input').click()">
+                            <i class="fas fa-folder-open"></i> Choose File
+                        </button>
+                        <input type="file" id="file-input" accept="image/*">
+                    </div>
+
+                    <div class="instructions">
+                        <h4><i class="fas fa-info-circle"></i> Upload Instructions</h4>
+                        <ol>
+                            <li>Take a clear photo of the product QR code</li>
+                            <li>Upload the image using the area above</li>
+                            <li>The system will automatically detect and process the QR code</li>
+                            <li>Product will be added to your cart if the code is valid</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Scan Result -->
+                <div class="scan-result" id="scan-result">
+                    <div class="result-icon" id="result-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="result-message" id="result-message"></div>
+                    <div class="result-details" id="result-details" style="display: none;"></div>
+                    <div class="result-actions">
+                        <a href="{% url 'cart' %}" class="scanner-btn scanner-btn-primary">
+                            <i class="fas fa-shopping-cart"></i> View Cart
+                        </a>
+                        <button class="scanner-btn scanner-btn-secondary" onclick="location.reload()">
+                            <i class="fas fa-redo"></i> Scan Another
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- QR Code Scanner Library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+<script>
+    let html5QrcodeScanner = null;
+    let scanning = false;
+
+    // Tab Switching
+    document.querySelectorAll('.scanner-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Update active tab
+            document.querySelectorAll('.scanner-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+
+            // Update active panel
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(this.dataset.tab + '-panel').classList.add('active');
+
+            // Stop camera if switching away from camera tab
+            if (this.dataset.tab !== 'camera' && scanning) {
+                stopCamera();
+            }
+        });
+    });
+
+    // Camera Scanner
+    document.getElementById('start-camera').addEventListener('click', startCamera);
+    document.getElementById('stop-camera').addEventListener('click', stopCamera);
+
+    function startCamera() {
+        const videoContainer = document.getElementById('video-container');
+        const startBtn = document.getElementById('start-camera');
+        const stopBtn = document.getElementById('stop-camera');
+
+        html5QrcodeScanner = new Html5Qrcode("qr-video");
+        
+        html5QrcodeScanner.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            },
+            onScanSuccess,
+            onScanError
+        ).then(() => {
+            videoContainer.style.display = 'block';
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'inline-flex';
+            scanning = true;
+        }).catch(err => {
+            console.error('Camera error:', err);
+            showResult(false, 'Camera access denied or not available. Please check your permissions.');
+        });
+    }
+
+    function stopCamera() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.stop().then(() => {
+                document.getElementById('video-container').style.display = 'none';
+                document.getElementById('start-camera').style.display = 'inline-flex';
+                document.getElementById('stop-camera').style.display = 'none';
+                scanning = false;
+            }).catch(err => {
+                console.error('Error stopping camera:', err);
+            });
+        }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        console.log('QR Code detected:', decodedText);
+        stopCamera();
+        processQRCode(decodedText);
+    }
+
+    function onScanError(error) {
+        // Silent - scanning errors are normal during scanning process
+    }
+
+    // Upload Scanner
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('file-input');
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            processImageFile(file);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            processImageFile(file);
+        }
+    });
+
+    function processImageFile(file) {
+        showLoading();
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    processQRCode(code.data);
+                } else {
+                    showResult(false, 'No QR code found in the image. Please try another image.');
+                }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function showLoading() {
+        const resultDiv = document.getElementById('scan-result');
+        resultDiv.className = 'scan-result';
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+            <div class="scanner-loading">
+                <div class="spinner"></div>
+                <p>Processing QR code...</p>
+            </div>
+        `;
+    }
+
+    function processQRCode(qrData) {
+        showLoading();
+
+        // Extract product slug from QR code URL
+        // Expected format: https://domain.com/qr-add-to-cart/product-slug/
+        const urlMatch = qrData.match(/\/qr-add-to-cart\/([^\/]+)\/?/);
+        
+        if (!urlMatch) {
+            showResult(false, 'Invalid QR code. This is not a valid product QR code.');
+            return;
+        }
+
+        const productSlug = urlMatch[1];
+
+        // Add product to cart via AJAX
+        fetch(`/qr-add-to-cart/${productSlug}/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => {
+            if (response.redirected) {
+                // If redirected, it means the product was added successfully
+                return { success: true, message: 'Product added to cart!' };
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success !== false) {
+                showResult(true, 'Product successfully added to your cart!', productSlug);
+            } else {
+                showResult(false, data.error || 'Failed to add product to cart.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showResult(false, 'An error occurred while adding the product to cart.');
+        });
+    }
+
+    function showResult(success, message, productSlug = null) {
+        const resultDiv = document.getElementById('scan-result');
+        const resultIcon = document.getElementById('result-icon');
+        const resultMessage = document.getElementById('result-message');
+        const resultDetails = document.getElementById('result-details');
+
+        resultDiv.className = 'scan-result ' + (success ? 'success' : 'error');
+        resultDiv.style.display = 'block';
+
+        resultIcon.className = 'result-icon ' + (success ? 'success' : 'error');
+        resultIcon.innerHTML = success 
+            ? '<i class="fas fa-check-circle"></i>' 
+            : '<i class="fas fa-exclamation-circle"></i>';
+
+        resultMessage.textContent = message;
+
+        if (productSlug && success) {
+            resultDetails.style.display = 'block';
+            resultDetails.innerHTML = `
+                <p><strong>Product:</strong> ${productSlug.replace(/-/g, ' ')}</p>
+                <p><strong>Quantity:</strong> 1</p>
+            `;
+        } else {
+            resultDetails.style.display = 'none';
+        }
+    }
+
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

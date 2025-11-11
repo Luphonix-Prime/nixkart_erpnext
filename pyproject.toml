@@ -1,0 +1,10 @@
+[tool.django-stubs]
+django_settings_module = "ecommerce_project.settings"
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+reportMissingTypeStubs = false
+
+[tool.basedpyright.plugins]
+# Enable django-stubs plugin
+django-stubs = true

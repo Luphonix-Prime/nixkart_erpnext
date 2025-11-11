@@ -47,6 +47,7 @@ urlpatterns = [
     path('update-cart/<int:cart_item_id>/', views.update_cart, name='update_cart'),
     path('remove-from-cart/<int:cart_item_id>/', views.remove_from_cart, name='remove_from_cart'),
     path('qr-add-to-cart/<slug:product_slug>/', views.qr_add_to_cart, name='qr_add_to_cart'),
+    path('qr-scanner/', views.qr_scanner, name='qr_scanner'),
     
     # Wishlist
     path('wishlist/', views.wishlist_view, name='wishlist'),
