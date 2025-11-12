@@ -33,6 +33,8 @@ class ERPNextAPI:
                 response = requests.put(url, headers=self.headers, json=data)
             elif method == 'DELETE':
                 response = requests.delete(url, headers=self.headers)
+            else:
+                raise ValueError(f"Unsupported HTTP method: {method}")
             
             response.raise_for_status()
             return response.json()
@@ -43,7 +45,7 @@ class ERPNextAPI:
     # Product/Item methods
     def get_items(self, filters=None, fields=None, limit=20):
         """Get items from ERPNext"""
-        params = {
+        params: dict[str, int | str] = {
             'limit_page_length': limit
         }
         if filters:
@@ -132,9 +134,15 @@ class ERPNextAPI:
         """Get item price"""
         filters = {
             'item_code': item_code,
-            'price_list': price_list
+            'price_list': price_list,
+            'selling': 1
         }
-        return self._make_request('GET', 'Item Price', {'filters': json.dumps(filters)})
+        fields = ['name', 'item_code', 'price_list', 'price_list_rate']
+        params = {
+            'filters': json.dumps(filters),
+            'fields': json.dumps(fields)
+        }
+        return self._make_request('GET', 'Item Price', params)
 
 # Singleton instance
 erpnext_api = ERPNextAPI()

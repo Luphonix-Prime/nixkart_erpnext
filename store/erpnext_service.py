@@ -61,12 +61,23 @@ class ERPNextService:
         item_id = item_data.get('name', item_name)
         category_name = item_data.get('item_group', '')
         
+        # Fetch actual selling price from Item Price doctype
+        price = Decimal('0')
+        if item_id:
+            price_response = erpnext_api.get_item_price(item_id)
+            if price_response and 'data' in price_response and len(price_response['data']) > 0:
+                # Get the first price record's rate
+                price = Decimal(str(price_response['data'][0].get('price_list_rate', 0)))
+            else:
+                # Fallback to standard_rate if no Item Price found
+                price = Decimal(str(item_data.get('standard_rate', 0)))
+        
         return {
             'id': item_id,
             'name': item_name,
             'slug': item_id.lower().replace(' ', '-') if item_id else 'unknown',
             'description': item_data.get('description', ''),
-            'price': Decimal(str(item_data.get('standard_rate', 0))),
+            'price': price,
             'stock': item_data.get('actual_qty', 0),
             'image': item_data.get('image', ''),
             'category': category_name.lower().replace(' ', '-') if category_name else '',
