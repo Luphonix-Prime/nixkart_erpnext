@@ -144,5 +144,28 @@ class ERPNextAPI:
         }
         return self._make_request('GET', 'Item Price', params)
 
+    # ADD: Item create/update
+    def create_item(self, item_data):
+        """Create an Item"""
+        return self._make_request('POST', 'Item', item_data)
+
+    def update_item(self, item_code, item_data):
+        """Update an Item"""
+        return self._make_request('PUT', f'Item/{item_code}', item_data)
+
+    # ADD: Item Group create (to ensure category exists)
+    def create_item_group(self, group_data):
+        """Create an Item Group"""
+        return self._make_request('POST', 'Item Group', group_data)
+
+    # ADD: Item Price create/update
+    def create_item_price(self, price_data):
+        """Create an Item Price"""
+        return self._make_request('POST', 'Item Price', price_data)
+
+    def update_item_price(self, price_name, price_data):
+        """Update an Item Price"""
+        return self._make_request('PUT', f'Item Price/{price_name}', price_data
+
 # Singleton instance
 erpnext_api = ERPNextAPI()

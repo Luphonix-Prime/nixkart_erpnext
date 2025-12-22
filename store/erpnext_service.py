@@ -60,29 +60,32 @@ class ERPNextService:
         item_name = item_data.get('item_name') or item_data.get('name', 'Unknown')
         item_id = item_data.get('name', item_name)
         category_name = item_data.get('item_group', '')
-        
+
         # Fetch actual selling price from Item Price doctype
         price = Decimal('0')
         if item_id:
             price_response = erpnext_api.get_item_price(item_id)
             if price_response and 'data' in price_response and len(price_response['data']) > 0:
-                # Get the first price record's rate
                 price = Decimal(str(price_response['data'][0].get('price_list_rate', 0)))
             else:
-                # Fallback to standard_rate if no Item Price found
                 price = Decimal(str(item_data.get('standard_rate', 0)))
-        
+
+        # Pull stock from Bin via ERPNextService.get_stock_level
+        stock = ERPNextService.get_stock_level(item_id) if item_id else 0
+
         return {
             'id': item_id,
             'name': item_name,
             'slug': item_id.lower().replace(' ', '-') if item_id else 'unknown',
             'description': item_data.get('description', ''),
             'price': price,
-            'stock': item_data.get('actual_qty', 0),
+            'stock': stock,
             'image': item_data.get('image', ''),
             'category': category_name.lower().replace(' ', '-') if category_name else '',
             'category_name': category_name,
             'is_featured': item_data.get('is_featured', 0) == 1,
+            # ADD: explicit availability flag used by templates
+            'is_in_stock': stock > 0,
         }
     
     @staticmethod
@@ -124,30 +127,38 @@ class ERPNextService:
             return None
         
         # Prepare customer data
-        customer_id = f"CUST-{user.id}"
-        
-        # Create or get customer
         customer_data = {
-            'customer_name': f"{user.first_name} {user.last_name}",
+            'customer_name': f"{user.first_name} {user.last_name}".strip() or user.username,
             'customer_type': 'Individual',
             'customer_group': 'Individual',
             'territory': 'All Territories',
         }
-        erpnext_api.create_customer(customer_data)
-        
-        # Prepare order items
+
+        # Create (or reuse) customer and use its actual ERPNext ID for the order
+        customer_resp = erpnext_api.create_customer(customer_data)
+        customer_id = None
+        if customer_resp and 'data' in customer_resp:
+            customer_id = customer_resp['data'].get('name')
+        # Fallback to display name if ERPNext didn't return an ID
+        customer_id = customer_id or customer_data['customer_name']
+
+        # Prepare order items; prefer an ERPNext item code if present
         items = []
         for cart_item in cart_items:
+            # Try known attributes; fall back to product name
+            item_code = getattr(cart_item.product, 'erpnext_id', None) \
+                        or getattr(cart_item.product, 'slug', None) \
+                        or cart_item.product.name
             items.append({
-                'item_code': cart_item.product.name,  # or use item_code from ERPNext
+                'item_code': item_code,
                 'qty': cart_item.quantity,
                 'rate': float(cart_item.product.price),
             })
-        
+
         # Create sales order
         order_data = {
             'customer': customer_id,
-            'delivery_date': None,  # Set appropriate delivery date
+            'delivery_date': None,  # set appropriately
             'items': items,
             'shipping_address': shipping_info.get('address'),
             'contact_email': shipping_info.get('email'),
@@ -163,10 +174,17 @@ class ERPNextService:
         """Get stock level for an item"""
         if not ERPNextService.is_enabled():
             return 0
-        
+
         response = erpnext_api.get_item_stock(item_code)
         if response and 'data' in response and len(response['data']) > 0:
-            return sum([bin_data.get('actual_qty', 0) for bin_data in response['data']])
+            # Prefer projected_qty if present; fallback to actual_qty
+            total = 0
+            for bin_data in response['data']:
+                qty = bin_data.get('projected_qty')
+                if qty is None:
+                    qty = bin_data.get('actual_qty', 0)
+                total += max(qty or 0, 0)
+            return total
         return 0
 
 # Singleton instance

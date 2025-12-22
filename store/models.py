@@ -65,6 +65,8 @@ class Product(models.Model):
     is_on_sale = models.BooleanField(default=False)
     discount_percentage = models.PositiveIntegerField(default=0)
     sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    # ADD: Link to ERPNext Item Code
+    erpnext_id = models.CharField(max_length=100, blank=True, null=True, unique=True, help_text="ERPNext Item Code")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -194,7 +196,6 @@ class Order(models.Model):
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
     )
-    
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
     full_name = models.CharField(max_length=255)
     email = models.EmailField()
@@ -206,6 +207,8 @@ class Order(models.Model):
     country = models.CharField(max_length=100)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     total = models.DecimalField(max_digits=10, decimal_places=2)
+    # ADD: Link to ERPNext Sales Order (name)
+    erpnext_id = models.CharField(max_length=100, blank=True, null=True, unique=True, help_text="ERPNext Sales Order ID")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

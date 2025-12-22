@@ -27,13 +27,16 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-zux+a@eggwlxlsm_b@^8$=z%!+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# ERPNext Integration Settings
-ERPNEXT_ENABLED = os.getenv('ERPNEXT_ENABLED', 'False').lower() == 'true'
-ERPNEXT_URL = os.getenv('ERPNEXT_URL', 'http://localhost:8000')
-ERPNEXT_API_KEY = os.getenv('ERPNEXT_API_KEY', '')
-ERPNEXT_API_SECRET = os.getenv('ERPNEXT_API_SECRET', '')
+# ERPNext Integration
+ERPNEXT_ENABLED = True
+ERPNEXT_URL = "http://127.0.0.1:8000"  # matches your ERPNext instance
+ERPNEXT_API_KEY = os.getenv("ERPNEXT_API_KEY", "f140b62718e9c23")
+ERPNEXT_API_SECRET = os.getenv("ERPNEXT_API_SECRET", "9a9df3be4f08a40")
 
 ALLOWED_HOSTS = ['*']  # For development, in production set to specific domain
+
+# Server port configuration
+PORT = int(os.getenv('PORT', '9000'))
 
 # CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
@@ -42,7 +45,9 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:8000',
     'http://localhost:5000',
+    'http://localhost:9000',
     'http://0.0.0.0:5000',
+    'http://0.0.0.0:9000',
 ]
 
 # CORS settings
